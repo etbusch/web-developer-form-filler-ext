@@ -17,7 +17,7 @@ function fits(current, storage, filter) {
         return url1.host === url2.host;
 
     } else if (filter === FILTER_BY_PATH) {
-        return (url1.protocol + url1.host + url1.path) == (url2.protocol + url2.host + url2.path);
+        return url1.path == url2.path;
         
     } else if (filter === FILTER_BY_FULL) {
         return current == storage;

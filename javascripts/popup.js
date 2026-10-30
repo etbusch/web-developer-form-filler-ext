@@ -4,8 +4,9 @@ function refreshSetsList(url) {
 
     var table = $('#sets');
     
-    table.find('tbody tr').remove();
     browser.storage.sync.get().then(response => {
+        // Clear inside the callback so overlapping refreshes don't duplicate rows
+        table.find('tbody tr').remove();
         let filter = response.filter;
         delete response.filter;
         if (!table.hasClass('allsets')) {
@@ -13,6 +14,7 @@ function refreshSetsList(url) {
                 if (typeof(response[i]) !== 'object') {
                     delete response[i];
                     browser.storage.sync.remove(i);
+                    continue;
                 }
                 if (!fits(url, response[i].url, filter)) {
                     delete response[i]; 
@@ -75,7 +77,7 @@ function renderAdditionalInfo(sets) {
 
     for (var i in sets) {
         var set = sets[i];
-        var row = table.find('tr[data-key=' + set.key + ']');
+        var row = table.find('tr[data-key="' + i + '"]');
         var substrHref = set.url.length > 40 ? set.url.substring(0, 40) + '...' : set.url;
         row.append('<td class="url"><a target="_blank" href="' + set.url + '">' + substrHref + '</a></td>');
         row.find('td.restore').addClass('disabled').find('i').remove();
@@ -173,14 +175,13 @@ $(document).ready(function () {
 			var key = getRandomStorageId();
             let bundle = {};
             bundle[key] = importedForm
-            browser.storage.sync.set(bundle);
-
+            browser.storage.sync.set(bundle)
+                .then(() => refreshSetsList(tab_url), err => alert('Could not save set: ' + err.message));
 		}
 		catch (err) {
 			alert('Got an error: ' + err.message);
 		}
 		
-		refreshSetsList(tab_url);
 		$('#importBlock').hide();
     });
 
@@ -247,7 +248,10 @@ $(document).ready(function () {
 
             let bundle = {};
             bundle[key] = setSettings;
-            browser.storage.sync.set(bundle).then(() => refreshSetsList(tab_url));
+            browser.storage.sync.set(bundle).then(() => refreshSetsList(tab_url), err => {
+                error.text('Error :( Could not save set: ' + err.message).wrapInner('<h6>');
+                error.show();
+            });
         });
     });
 

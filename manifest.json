@@ -4,8 +4,8 @@
             "js": [
                 "javascripts/jquery-3.3.1.min.js",
                 "javascripts/deserialize.js",
-                "javascripts/content_script.js",
-                "javascripts/mousetrap.min.js"
+                "javascripts/mousetrap.min.js",
+                "javascripts/content_script.js"
             ],
             "matches": [
                 "http://*/*",

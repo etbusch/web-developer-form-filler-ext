@@ -79,6 +79,17 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
 
 bindHotkeys();
 
+// Mousetrap ignores keys typed into form fields by default, which is usually
+// where the focus is when you want to fill a form. Allow hotkeys there as
+// long as they use a modifier, so plain keys still type normally.
+var defaultStopCallback = Mousetrap.stopCallback;
+Mousetrap.stopCallback = function (e, element, combo) {
+    if (/(^|\+)(ctrl|alt|option|meta|command|mod)\+/.test(combo)) {
+        return false;
+    }
+    return defaultStopCallback(e, element, combo);
+};
+
 function bindHotkeys() {
     chrome.runtime.sendMessage({ "action": "gethotkeys", url: location.href }, function (hotkeys) {
         Mousetrap.reset();
@@ -86,6 +97,7 @@ function bindHotkeys() {
             chrome.runtime.sendMessage({ "action": "hotkey", code: code, url: location.href }, function (setSettings) {
                 if (!setSettings) {
                     alert('Hotkey not found');
+                    return;
                 }
 
                 fillForm(setSettings);

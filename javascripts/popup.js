@@ -47,21 +47,22 @@ function renderSets(sets) {
 
     for (var i in sets) {
         var set = sets[i];
-        var newRow = $('<tr data-key="' + i + '"></tr>');
+        // Set names, URLs and hotkeys can come from imported JSON, so they
+        // are only ever inserted as text.
+        var newRow = $('<tr></tr>').attr('data-key', i);
         newRow.append('<td class="restore"><i class="fas fa-arrow-up"></i> Restore</td>');
-        newRow.append('<td class="setName">' + set.name + '</td>');
+        newRow.append($('<td class="setName"></td>').text(set.name));
 
-        var isChecked = set.autoSubmit ? "checked" : "";
-        var submitHtml = isChecked
-            ? '<i class="fas icon-ok"></i> <span>Yes</span>'
-            : '<i class="fas icon-remove"></i> <span>No</span>';
+        var submitHtml = set.autoSubmit
+            ? '<i class="fas fa-check"></i> <span>Yes</span>'
+            : '<i class="fas fa-times"></i> <span>No</span>';
 
-        newRow.append('<td class="submit ' + (isChecked ? 'active' : '') + '">' + submitHtml + '</td>');
-        newRow.append('<td class="remove"><i class="fas fa-trash-alt"></td>');
+        newRow.append($('<td class="submit"></td>').toggleClass('active', !!set.autoSubmit).html(submitHtml));
+        newRow.append('<td class="remove"><i class="fas fa-trash-alt"></i></td>');
         newRow.append('<td class="export"><i class="fas fa-share-alt"></i></td>');
 
         var hotkey = set.hotkey;
-        newRow.append('<td class="hotkey">' + (hotkey ? hotkey : 'none') + '</a></td>');
+        newRow.append($('<td class="hotkey"></td>').text(hotkey ? hotkey : 'none'));
 
         $('#sets').append(newRow);
     }
@@ -79,7 +80,11 @@ function renderAdditionalInfo(sets) {
         var set = sets[i];
         var row = table.find('tr[data-key="' + i + '"]');
         var substrHref = set.url.length > 40 ? set.url.substring(0, 40) + '...' : set.url;
-        row.append('<td class="url"><a target="_blank" href="' + set.url + '">' + substrHref + '</a></td>');
+        var link = $('<a target="_blank"></a>').text(substrHref);
+        if (/^(https?|file):/i.test(set.url)) {
+            link.attr('href', set.url);
+        }
+        row.append($('<td class="url"></td>').append(link));
         row.find('td.restore').addClass('disabled').find('i').remove();
     }
 }
@@ -226,7 +231,7 @@ $(document).ready(function () {
                 } else if (!obj) {
                     error.html('<h6>Error :( Null response from content script</h6>');
                 } else if (obj.error) {
-                    error.html('<h6>Error :\'( ' + obj.message + '</h6>');
+                    error.empty().append($('<h6></h6>').text('Error :\'( ' + obj.message));
                 }
 
                 error.show();
@@ -249,7 +254,7 @@ $(document).ready(function () {
             let bundle = {};
             bundle[key] = setSettings;
             browser.storage.sync.set(bundle).then(() => refreshSetsList(tab_url), err => {
-                error.text('Error :( Could not save set: ' + err.message).wrapInner('<h6>');
+                error.empty().append($('<h6></h6>').text('Error :( Could not save set: ' + err.message));
                 error.show();
             });
         });
@@ -367,7 +372,7 @@ $(document).ready(function () {
         if (code == 13) { //Enter keycode
             var td = textbox.parents('td');
             saveValue(tr, 'name', value);
-            td.html(value);
+            td.text(value);
         } else {
             saveValue(tr, 'name', value);
         }

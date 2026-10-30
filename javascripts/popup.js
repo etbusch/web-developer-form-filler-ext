@@ -82,13 +82,18 @@ function renderAdditionalInfo(sets) {
     }
 }
 
-function saveValue(tr, property, value) {
+// Updates one or more properties of a set in a single read/write, so that
+// several changes to the same set can't clobber each other.
+function saveValues(tr, values) {
     var key = tr.data('key').toString();
-    var setSettings = null;
-    browser.storage.sync.get(key).then(response => {
-        response[key][property] = value;
-        browser.storage.sync.set(response);
-    }, error => console.log(`Error: ${error}`))
+    return browser.storage.sync.get(key).then(response => {
+        Object.assign(response[key], values);
+        return browser.storage.sync.set(response);
+    }).catch(error => console.log(`Error: ${error}`));
+}
+
+function saveValue(tr, property, value) {
+    return saveValues(tr, { [property]: value });
 }
 
 function sendMessage(obj, callback) {
@@ -266,32 +271,22 @@ $(document).ready(function () {
         var td = $(this);
         var tr = td.parents('tr');
 
-        try {
-            
-            if (td.hasClass('active')) {
-                saveValue(tr, 'autoSubmit', false);
-                td.removeClass('active');
-                return;
-            }
+        if (td.hasClass('active')) {
+            saveValue(tr, 'autoSubmit', false).then(() => refreshSetsList(tab_url));
+            return;
+        }
 
-            var key = tr.data('key').toString();
-    
-            browser.storage.sync.get(key).then(response => {
-                var oldQuery = response['submitQuery'];
-                oldQuery = oldQuery ? oldQuery : 'input[type=submit]';
-                var query = prompt('Enter jquery selector for submit button to auto click', oldQuery);
-                if (query) {
-                    saveValue(tr, 'submitQuery', query);
-                    saveValue(tr, 'autoSubmit', true);
-                    td.addClass('active');
-                } else {
-                    td.removeClass('active');
-                }
-            }, error => console.log(`Error: ${error}`))
-            
-        } finally {
-            refreshSetsList(tab_url);
-        } 
+        var key = tr.data('key').toString();
+
+        browser.storage.sync.get(key).then(response => {
+            var oldQuery = response[key]['submitQuery'];
+            oldQuery = oldQuery ? oldQuery : 'input[type=submit]';
+            var query = prompt('Enter jquery selector for submit button to auto click', oldQuery);
+            if (query) {
+                return saveValues(tr, { submitQuery: query, autoSubmit: true });
+            }
+        }, error => console.log(`Error: ${error}`))
+        .then(() => refreshSetsList(tab_url));
     });
 
     sets.on("click", 'td.remove', function (event) {
@@ -331,7 +326,7 @@ $(document).ready(function () {
         var tr = td.parents('tr');
         var key = tr.data('key').toString();
         browser.storage.sync.get(key).then(response => {
-            var value = response['hotkey'];
+            var value = response[key]['hotkey'];
             td.addClass('active');
             hotkeyBlock.show();
             hotkeyBlock.find('#txtHotkey').val(value).focus().select();
@@ -385,9 +380,10 @@ $(document).ready(function () {
         $('#hotkeyBlock').hide();
         var tr = $('#sets td.hotkey.active').parents('tr');
         var hotkey = $('#hotkeyBlock #txtHotkey').val();
-        saveValue(tr, 'hotkey', hotkey);
-        refreshSetsList(tab_url);
-        sendMessage({ "action": 'rebind' }, function(response) { });
+        saveValue(tr, 'hotkey', hotkey).then(() => {
+            refreshSetsList(tab_url);
+            sendMessage({ "action": 'rebind' }, function(response) { });
+        });
     });
     
     $('#btnHotkeyCancel').click(function () {

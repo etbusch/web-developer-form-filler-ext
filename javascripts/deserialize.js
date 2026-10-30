@@ -2,9 +2,7 @@
 (function ($) {
     // Jquery event doesn't work in chrome extension...
     function triggerNativeEvent(elem, eventName) {
-        var evt = document.createEvent("HTMLEvents");
-        evt.initEvent(eventName, true, true);
-        elem[0].dispatchEvent(evt);
+        elem[0].dispatchEvent(new Event(eventName, { bubbles: true, cancelable: true }));
     }
 
     $.fn.extend({
@@ -99,7 +97,8 @@
                     return true;
                 }
 
-                if ($current.is('input:text, input:password, input[type=email], input[type=number], input[type=search], input[type=tel], input[type=url], input[type=date]')) {
+                if ($current.is('input:text, input:password, input[type=email], input[type=number], input[type=search], input[type=tel], input[type=url], input[type=date], ' +
+                    'input[type=time], input[type=datetime-local], input[type=month], input[type=week], input[type=color], input[type=range]')) {
                     if ($currentSavedValue === undefined) {
                         console.warn('Value for ' + name + ' not found');
                     } else {

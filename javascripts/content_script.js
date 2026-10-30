@@ -35,7 +35,7 @@ $.fn.serializeForm = function () {
                 if (!name)
                     return;
 
-                if (name.match(/__.+/))
+                if (name.match(/^__/))
                     return;
 
                 //Do we already have a value for this?
